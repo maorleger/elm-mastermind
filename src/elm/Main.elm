@@ -56,6 +56,7 @@ model =
 type Msg
     = NoOp
     | Guess (List Peg)
+    | SubmitScore Score
 
 
 update : Msg -> Model -> Model
@@ -67,6 +68,9 @@ update msg model =
         Guess pegs ->
             model
 
+        SubmitScore newScore ->
+            model ++ [ (Round [ Yellow, Yellow, Blue, Green ] ( 0, 1 )) ]
+
 
 view : Model -> Html Msg
 view model =
@@ -77,7 +81,11 @@ round : Round -> Html Msg
 round { guess, score } =
     li [ class "round" ]
         [ span [ class "pegs" ] <| List.map pegRenderer guess
-        , span [ class "score" ] [ text ("score") ]
+        , span
+            [ class "score"
+            , onClick <| SubmitScore score
+            ]
+            [ text ("score") ]
         ]
 
 
