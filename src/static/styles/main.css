@@ -1,0 +1,31 @@
+.round__peg {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  margin: 10px;
+  display: inline-block;
+}
+
+.round__peg--blue {
+  background-color: blue;
+}
+
+.round__peg--pink {
+  background-color: pink;
+}
+
+.round__peg--yellow {
+  background-color: yellow;
+}
+
+.round__peg--orange {
+  background-color: orange;
+}
+
+.round__peg--green {
+  background-color: green;
+}
+
+.round__peg--red {
+  background-color: red;
+}
