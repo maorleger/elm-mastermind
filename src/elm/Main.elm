@@ -3,8 +3,9 @@ module Main exposing (..)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.App as Html
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput)
 import String exposing (toLower)
+import List.Extra as List
 
 
 -- APP
@@ -46,6 +47,7 @@ model : Model
 model =
     [ (Round [ Pink, Yellow, Blue, Green ] ( 0, 1 ))
     , (Round [ Blue, Blue, Blue, Blue ] ( 0, 0 ))
+    , (Round [ Green, Red, Pink, Orange ] ( 2, 1 ))
     ]
 
 
@@ -57,6 +59,7 @@ type Msg
     = NoOp
     | Guess (List Peg)
     | SubmitScore Score
+    | ChangeScore Score
 
 
 update : Msg -> Model -> Model
@@ -69,24 +72,74 @@ update msg model =
             model
 
         SubmitScore newScore ->
-            model ++ [ (Round [ Yellow, Yellow, Blue, Green ] ( 0, 1 )) ]
+            model ++ [ (Round [ Yellow, Yellow, Blue, Green ] ( 1, 1 )) ]
+
+        ChangeScore newScore ->
+            let
+                oldRound =
+                    List.getAt ((List.length model) - 1) model |> Maybe.withDefault (Round [] ( 1, 0 ))
+
+                newRound =
+                    { oldRound | score = newScore }
+            in
+                List.setAt ((List.length model) - 1) newRound model |> Maybe.withDefault [ (Round [] ( 0, 0 )) ]
+
+
+
+-- this is backwards
 
 
 view : Model -> Html Msg
-view model =
-    ol [ class "board" ] <| List.map round model
+view rounds =
+    case rounds of
+        -- [ x :: [] ] ->
+        --     ol [ class "board" ] <| [ currentRound x ]
+        [] ->
+            ol [ class "board" ] []
+
+        current :: others ->
+            ol [ class "board" ] <| (currentRound current :: List.map round others)
+
+
+currentRound : Round -> Html Msg
+currentRound { guess, score } =
+    let
+        toScore default newVal =
+            Result.withDefault default <| String.toInt newVal
+    in
+        li [ class "round" ]
+            [ span [ class "pegs" ] <| List.map pegRenderer guess
+            , span [ class "score" ]
+                [ input
+                    [ class "round__score--black"
+                    , value <| toString <| fst score
+                    , onInput (\x -> ChangeScore ( toScore (fst score) x, snd score ))
+                    ]
+                    []
+                , input
+                    [ class "round__score--white"
+                    , value <| toString <| snd score
+                    , onInput (\x -> ChangeScore ( fst score, toScore (snd score) x ))
+                    ]
+                    []
+                ]
+            ]
 
 
 round : Round -> Html Msg
 round { guess, score } =
-    li [ class "round" ]
-        [ span [ class "pegs" ] <| List.map pegRenderer guess
-        , span
-            [ class "score"
-            , onClick <| SubmitScore score
+    let
+        show ( blackPegs, whitePegs ) =
+            span [] [ text <| "(" ++ (toString blackPegs) ++ "," ++ (toString whitePegs) ++ ")" ]
+    in
+        li [ class "round" ]
+            [ span [ class "pegs" ] <| List.map pegRenderer guess
+            , span
+                [ class "score"
+                , onClick <| SubmitScore score
+                ]
+                [ show score ]
             ]
-            [ text ("score") ]
-        ]
 
 
 pegRenderer : Peg -> Html Msg
