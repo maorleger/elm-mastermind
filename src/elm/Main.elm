@@ -40,16 +40,19 @@ type alias Round =
 
 
 type alias Model =
-    List Round
+    { rounds : List Round, blackPegs : Maybe Int, whitePegs : Maybe Int }
 
 
 model : Model
 model =
-    [ (Round [ Pink, Yellow, Blue, Green ] <| Just ( 0, 1 ))
-    , (Round [ Blue, Blue, Blue, Blue ] <| Just ( 0, 0 ))
-    , (Round [ Green, Red, Pink, Orange ] <| Just ( 2, 1 ))
-    , (Round [ Green, Red, Red, Red ] <| Nothing)
-    ]
+    Model
+        [ (Round [ Pink, Yellow, Blue, Green ] <| Just ( 0, 1 ))
+        , (Round [ Blue, Blue, Blue, Blue ] <| Just ( 0, 0 ))
+        , (Round [ Green, Red, Pink, Orange ] <| Just ( 2, 1 ))
+        , (Round [ Green, Red, Red, Red ] <| Nothing)
+        ]
+        (Just 1)
+        Nothing
 
 
 
@@ -59,29 +62,64 @@ model =
 type Msg
     = NoOp
     | Guess (List Peg)
-    | SubmitScore (Maybe Score)
-    | ChangeScore (Maybe Score)
+    | SubmitScore ( Maybe Int, Maybe Int )
+    | ChangeBlack String
+    | ChangeWhite String
 
 
 update : Msg -> Model -> Model
 update msg model =
-    case msg of
-        NoOp ->
-            model
+    let
+        stringToScore =
+            Result.toMaybe << String.toInt
+    in
+        case msg of
+            NoOp ->
+                model
 
-        Guess pegs ->
-            model
+            Guess pegs ->
+                model
 
-        SubmitScore newScore ->
-            model
+            SubmitScore ( blackPegs, whitePegs ) ->
+                model
 
-        ChangeScore newScore ->
-            model
+            ChangeBlack blackPegs ->
+                { model | blackPegs = stringToScore blackPegs }
+
+            ChangeWhite whitePegs ->
+                { model | whitePegs = stringToScore whitePegs }
 
 
 view : Model -> Html Msg
-view rounds =
-    ol [ class "board" ] <| List.map round rounds
+view { rounds, blackPegs, whitePegs } =
+    div [ class "board" ] <| List.map round rounds ++ (scoreRenderer blackPegs whitePegs)
+
+
+scoreRenderer : Maybe Int -> Maybe Int -> List (Html Msg)
+scoreRenderer blackPegs whitePegs =
+    let
+        parseScore score =
+            case score of
+                Nothing ->
+                    ""
+
+                Just s ->
+                    toString s
+
+        toScore blackPegs whitePegs =
+            case String.isEmpty <| blackPegs ++ whitePegs of
+                True ->
+                    Nothing
+
+                False ->
+                    Just ( blackPegs, whitePegs )
+    in
+        [ div [ class "board--score" ]
+            [ input [ class "round__score--black", value <| parseScore blackPegs, onInput ChangeBlack ] []
+            , input [ class "round__score--white", value <| parseScore whitePegs, onInput ChangeWhite ] []
+            , button [ class "round__score--submit", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
+            ]
+        ]
 
 
 round : Round -> Html Msg
@@ -90,20 +128,15 @@ round { guess, score } =
         show score =
             case score of
                 Nothing ->
-                    span []
-                        [ input [ class "round__score--black", value <| "0" ] []
-                        , input [ class "round__score--white", value <| "1" ] []
-                        ]
+                    span [] []
 
                 Just ( blackPegs, whitePegs ) ->
                     span [] [ text <| "(" ++ (toString blackPegs) ++ "," ++ (toString whitePegs) ++ ")" ]
     in
-        li [ class "round" ]
+        div [ class "round" ]
             [ span [ class "pegs" ] <| List.map pegRenderer guess
             , span
-                [ class "score"
-                , onClick <| SubmitScore score
-                ]
+                [ class "score" ]
                 [ show score ]
             ]
 
