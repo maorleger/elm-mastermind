@@ -34,3 +34,11 @@
 .round__peg--red {
   background-color: red;
 }
+
+.round__score .form-group {
+  padding: 10px;
+}
+
+.round__score input {
+  margin-left: 10px;
+}

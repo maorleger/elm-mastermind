@@ -134,11 +134,21 @@ scoreRenderer blackPegs whitePegs =
                 False ->
                     Just ( blackPegs, whitePegs )
     in
-        [ div [ class "board--score" ]
-            [ input [ class "round__score--black", value <| parseScore blackPegs, onInput ChangeBlack ] []
-            , input [ class "round__score--white", value <| parseScore whitePegs, onInput ChangeWhite ] []
-            , button [ class "round__score--submit", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
+        [ div [ class "round__score form-inline" ]
+            [ div [ class "form-group" ]
+                [ label [ for "black-pegs" ] [ text "Black Pegs:" ]
+                , input [ class "round__score--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
+                ]
+            , div [ class "form-group" ]
+                [ label [ for "white-pegs" ] [ text "White Pegs:" ]
+                , input [ class "round__score--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
+                ]
+            , button [ class "round__score--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
             ]
+          -- [ input [ class "round__score--black", value <| parseScore blackPegs, onInput ChangeBlack ] []
+          -- , input [ class "round__score--white", value <| parseScore whitePegs, onInput ChangeWhite ] []
+          -- , button [ class "round__score--submit btn", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
+          -- ]
         ]
 
 
