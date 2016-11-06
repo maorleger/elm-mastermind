@@ -1,6 +1,12 @@
-.round {
+
+.board {
   display: flex;
+  flex-direction: column;
   align-items: center;
+}
+
+.board__round {
+  justify-content: space-around;
 }
 
 .round__peg {

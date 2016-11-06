@@ -110,6 +110,10 @@ update msg model =
                 { model | whitePegs = validateScore <| stringToScore whitePegs }
 
 
+
+-- VIEW
+
+
 view : Model -> Html Msg
 view { rounds, blackPegs, whitePegs } =
     div [ class "board" ] <| List.map round rounds ++ (scoreRenderer blackPegs whitePegs)
@@ -134,21 +138,17 @@ scoreRenderer blackPegs whitePegs =
                 False ->
                     Just ( blackPegs, whitePegs )
     in
-        [ div [ class "round__score form-inline" ]
+        [ div [ class "score form-inline" ]
             [ div [ class "form-group" ]
                 [ label [ for "black-pegs" ] [ text "Black Pegs:" ]
-                , input [ class "round__score--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
+                , input [ class "score__input--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
                 ]
             , div [ class "form-group" ]
                 [ label [ for "white-pegs" ] [ text "White Pegs:" ]
-                , input [ class "round__score--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
+                , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
                 ]
-            , button [ class "round__score--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
+            , button [ class "score__button--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
             ]
-          -- [ input [ class "round__score--black", value <| parseScore blackPegs, onInput ChangeBlack ] []
-          -- , input [ class "round__score--white", value <| parseScore whitePegs, onInput ChangeWhite ] []
-          -- , button [ class "round__score--submit btn", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
-          -- ]
         ]
 
 
@@ -158,16 +158,16 @@ round { guess, score } =
         show score =
             case score of
                 Nothing ->
-                    span [] []
+                    ""
 
                 Just ( blackPegs, whitePegs ) ->
-                    span [] [ text <| "(" ++ (toString blackPegs) ++ "," ++ (toString whitePegs) ++ ")" ]
+                    "(" ++ (toString blackPegs) ++ "," ++ (toString whitePegs) ++ ")"
     in
         div [ class "round" ]
-            [ span [ class "pegs" ] <| List.map pegRenderer guess
+            [ span [ class "round__pegs" ] <| List.map pegRenderer guess
             , span
-                [ class "score" ]
-                [ show score ]
+                [ class "round__score" ]
+                [ text <| show score ]
             ]
 
 
