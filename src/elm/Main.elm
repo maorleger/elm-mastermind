@@ -5,7 +5,6 @@ import Html.Attributes exposing (..)
 import Html.App as Html
 import Html.Events exposing (onClick, onInput)
 import String exposing (toLower)
-import List.Extra as List
 
 
 -- APP
@@ -72,6 +71,27 @@ update msg model =
     let
         stringToScore =
             Result.toMaybe << String.toInt
+
+        -- TODO: better error messages if model.blackPegs and model.whitePegs dont exist yet
+        -- TODO: refactor all the validation to some applicative
+        updateRound { guess, score } =
+            case score of
+                Nothing ->
+                    Round guess <| Just ( Maybe.withDefault 0 model.blackPegs, Maybe.withDefault 0 model.whitePegs )
+
+                Just score ->
+                    Round guess <| Just score
+
+        validateScore score =
+            case score of
+                Nothing ->
+                    Nothing
+
+                Just score ->
+                    if List.member score [ 0, 1, 2, 3, 4 ] then
+                        Just score
+                    else
+                        Nothing
     in
         case msg of
             NoOp ->
@@ -81,13 +101,13 @@ update msg model =
                 model
 
             SubmitScore ( blackPegs, whitePegs ) ->
-                model
+                Model ((List.map updateRound model.rounds) ++ [ Round [ Pink, Pink, Pink, Pink ] Nothing ]) Nothing Nothing
 
             ChangeBlack blackPegs ->
-                { model | blackPegs = stringToScore blackPegs }
+                { model | blackPegs = validateScore <| stringToScore blackPegs }
 
             ChangeWhite whitePegs ->
-                { model | whitePegs = stringToScore whitePegs }
+                { model | whitePegs = validateScore <| stringToScore whitePegs }
 
 
 view : Model -> Html Msg
