@@ -12,7 +12,12 @@ import String exposing (toLower)
 
 main : Program Never
 main =
-    Html.beginnerProgram { model = model, view = view, update = update }
+    Html.program
+        { init = init
+        , view = view
+        , update = update
+        , subscriptions = subscriptions
+        }
 
 
 type Peg
@@ -42,9 +47,13 @@ type alias Model =
     { rounds : List Round, blackPegs : Maybe Int, whitePegs : Maybe Int }
 
 
-model : Model
-model =
-    Model
+
+-- INIT
+
+
+init : ( Model, Cmd Msg )
+init =
+    ( Model
         [ (Round [ Green, Red, Red, Red ] <| Nothing)
         , (Round [ Blue, Blue, Blue, Blue ] <| Just ( 0, 0 ))
         , (Round [ Green, Red, Pink, Orange ] <| Just ( 2, 1 ))
@@ -52,6 +61,17 @@ model =
         ]
         (Just 1)
         Nothing
+    , Cmd.none
+    )
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+    Sub.none
 
 
 
@@ -66,7 +86,7 @@ type Msg
     | ChangeWhite String
 
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     let
         stringToScore =
@@ -95,19 +115,19 @@ update msg model =
     in
         case msg of
             NoOp ->
-                model
+                ( model, Cmd.none )
 
             Guess pegs ->
-                model
+                ( model, Cmd.none )
 
             SubmitScore ( blackPegs, whitePegs ) ->
-                Model ((List.map updateRound model.rounds) ++ [ Round [ Pink, Pink, Pink, Pink ] Nothing ]) Nothing Nothing
+                ( Model ((List.map updateRound model.rounds) ++ [ Round [ Pink, Pink, Pink, Pink ] Nothing ]) Nothing Nothing, Cmd.none )
 
             ChangeBlack blackPegs ->
-                { model | blackPegs = validateScore <| stringToScore blackPegs }
+                ( { model | blackPegs = validateScore <| stringToScore blackPegs }, Cmd.none )
 
             ChangeWhite whitePegs ->
-                { model | whitePegs = validateScore <| stringToScore whitePegs }
+                ( { model | whitePegs = validateScore <| stringToScore whitePegs }, Cmd.none )
 
 
 
