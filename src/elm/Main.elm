@@ -121,7 +121,7 @@ update msg model =
                 ( model, Cmd.none )
 
             SubmitScore ( blackPegs, whitePegs ) ->
-                ( Model ((List.map updateRound model.rounds) ++ [ Round [ Pink, Pink, Pink, Pink ] Nothing ]) Nothing Nothing, Cmd.none )
+                ( Model ((Round [ Pink, Pink, Pink, Pink ] Nothing) :: (List.map updateRound model.rounds)) Nothing Nothing, Cmd.none )
 
             ChangeBlack blackPegs ->
                 ( { model | blackPegs = validateScore <| stringToScore blackPegs }, Cmd.none )
