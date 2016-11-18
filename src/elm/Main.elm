@@ -9,6 +9,7 @@ import Http
 import Json.Decode as Decode exposing ((:=))
 import Json.Decode.Extra as Decode exposing ((|:))
 import Task
+import Json.Encode as Encode
 
 
 -- APP
@@ -58,14 +59,10 @@ type alias Model =
 init : ( Model, Cmd Msg )
 init =
     ( Model
-        [ (Round [ Green, Red, Red, Red ] <| Nothing)
-        , (Round [ Blue, Blue, Blue, Blue ] <| Just ( 0, 0 ))
-        , (Round [ Green, Red, Pink, Orange ] <| Just ( 2, 1 ))
-        , (Round [ Pink, Yellow, Blue, Green ] <| Just ( 0, 1 ))
-        ]
-        (Just 1)
+        []
         Nothing
-    , Cmd.none
+        Nothing
+    , submitScore <| Model [] Nothing Nothing
     )
 
 
@@ -84,7 +81,6 @@ subscriptions model =
 
 type Msg
     = NoOp
-    | Guess (List Peg)
     | GetRounds
     | GotRounds (List Round)
     | FailedRounds Http.Error
@@ -124,9 +120,6 @@ update msg model =
             NoOp ->
                 ( model, Cmd.none )
 
-            Guess pegs ->
-                ( model, Cmd.none )
-
             GetRounds ->
                 ( model, getRounds )
 
@@ -137,13 +130,66 @@ update msg model =
                 Debug.crash <| toString error
 
             SubmitScore ( blackPegs, whitePegs ) ->
-                ( Model ((Round [ Pink, Pink, Pink, Pink ] Nothing) :: (List.map updateRound model.rounds)) Nothing Nothing, Cmd.none )
+                let
+                    newModel =
+                        Model (List.map updateRound model.rounds) Nothing Nothing
+                in
+                    ( newModel, submitScore newModel )
 
             ChangeBlack blackPegs ->
                 ( { model | blackPegs = validateScore <| stringToScore blackPegs }, Cmd.none )
 
             ChangeWhite whitePegs ->
                 ( { model | whitePegs = validateScore <| stringToScore whitePegs }, Cmd.none )
+
+
+
+-- ENCODING
+
+
+pegToString : Peg -> Encode.Value
+pegToString =
+    Encode.string << toString
+
+
+
+--
+-- encodeRounds : List Round -> List Encode.Value
+-- encodeRounds rounds =
+--     List.map encodeRound rounds
+
+
+encodeRounds : List Round -> Encode.Value
+encodeRounds rounds =
+    Encode.object
+        [ ( "rounds", Encode.list <| List.map encodeRound <| rounds )
+        ]
+
+
+encodeRound : Round -> Encode.Value
+encodeRound record =
+    let
+        toScore score =
+            case score of
+                Nothing ->
+                    [ 0, 0 ]
+
+                Just ( black, white ) ->
+                    [ black, white ]
+    in
+        Encode.object
+            [ ( "guess", Encode.list <| List.map pegToString <| record.guess )
+            , ( "score", Encode.list <| List.map Encode.int <| toScore record.score )
+            ]
+
+
+submitScore : Model -> Cmd Msg
+submitScore { rounds, blackPegs, whitePegs } =
+    Task.perform FailedRounds GotRounds (Http.post decodeRounds "http://localhost:3000/play" <| Http.string <| Encode.encode 0 <| encodeRounds rounds)
+
+
+
+-- DECODING
 
 
 getRounds : Cmd Msg
@@ -189,7 +235,7 @@ gameRound : Decode.Decoder Round
 gameRound =
     Decode.succeed Round
         |: ("guess" := Decode.list decodePeg)
-        |: ("result" := (Decode.maybeNull <| Decode.tuple2 (,) Decode.int Decode.int))
+        |: ("score" := (Decode.maybeNull <| Decode.tuple2 (,) Decode.int Decode.int))
 
 
 decodePeg : Decode.Decoder Peg
@@ -238,7 +284,7 @@ scoreRenderer blackPegs whitePegs =
                 , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
                 ]
               --, button [ class "score__button--submit btn btn-primary", onClick <| GetRounds ( blackPegs, whitePegs ) ] [ text "Submit" ]
-            , button [ class "score__button--submit btn btn-primary", onClick <| GetRounds ] [ text "Submit" ]
+            , button [ class "score__button--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
             ]
 
 
