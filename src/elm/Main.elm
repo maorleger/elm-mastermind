@@ -5,6 +5,10 @@ import Html.Attributes exposing (..)
 import Html.App as Html
 import Html.Events exposing (onClick, onInput)
 import String exposing (toLower)
+import Http
+import Json.Decode as Decode exposing ((:=))
+import Json.Decode.Extra as Decode exposing ((|:))
+import Task
 
 
 -- APP
@@ -81,6 +85,9 @@ subscriptions model =
 type Msg
     = NoOp
     | Guess (List Peg)
+    | GetRounds
+    | GotRounds (List Round)
+    | FailedRounds Http.Error
     | SubmitScore ( Maybe Int, Maybe Int )
     | ChangeBlack String
     | ChangeWhite String
@@ -120,6 +127,15 @@ update msg model =
             Guess pegs ->
                 ( model, Cmd.none )
 
+            GetRounds ->
+                ( model, getRounds )
+
+            GotRounds rounds ->
+                ( Model rounds Nothing Nothing, Cmd.none )
+
+            FailedRounds error ->
+                Debug.crash <| toString error
+
             SubmitScore ( blackPegs, whitePegs ) ->
                 ( Model ((Round [ Pink, Pink, Pink, Pink ] Nothing) :: (List.map updateRound model.rounds)) Nothing Nothing, Cmd.none )
 
@@ -128,6 +144,57 @@ update msg model =
 
             ChangeWhite whitePegs ->
                 ( { model | whitePegs = validateScore <| stringToScore whitePegs }, Cmd.none )
+
+
+getRounds : Cmd Msg
+getRounds =
+    let
+        url =
+            "http://localhost:3000/rounds"
+    in
+        Task.perform FailedRounds GotRounds (Http.get decodeRounds url)
+
+
+stringToPeg : String -> Decode.Decoder Peg
+stringToPeg peg =
+    case peg of
+        "Orange" ->
+            Decode.succeed Orange
+
+        "Yellow" ->
+            Decode.succeed Yellow
+
+        "Green" ->
+            Decode.succeed Green
+
+        "Red" ->
+            Decode.succeed Red
+
+        "Blue" ->
+            Decode.succeed Blue
+
+        "Pink" ->
+            Decode.succeed Pink
+
+        _ ->
+            Decode.fail "that aint a color"
+
+
+decodeRounds : Decode.Decoder (List Round)
+decodeRounds =
+    ("rounds" := Decode.list gameRound)
+
+
+gameRound : Decode.Decoder Round
+gameRound =
+    Decode.succeed Round
+        |: ("guess" := Decode.list decodePeg)
+        |: ("result" := (Decode.maybeNull <| Decode.tuple2 (,) Decode.int Decode.int))
+
+
+decodePeg : Decode.Decoder Peg
+decodePeg =
+    Decode.andThen Decode.string stringToPeg
 
 
 
@@ -170,7 +237,8 @@ scoreRenderer blackPegs whitePegs =
                 [ label [ for "white-pegs" ] [ text "White Pegs:" ]
                 , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
                 ]
-            , button [ class "score__button--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
+              --, button [ class "score__button--submit btn btn-primary", onClick <| GetRounds ( blackPegs, whitePegs ) ] [ text "Submit" ]
+            , button [ class "score__button--submit btn btn-primary", onClick <| GetRounds ] [ text "Submit" ]
             ]
 
 
