@@ -82,7 +82,6 @@ subscriptions model =
 
 type Msg
     = NoOp
-    | GetRounds
     | GotRounds (List Round)
     | FailedRounds Http.Error
     | SubmitScore ( Maybe Int, Maybe Int )
@@ -118,9 +117,6 @@ update msg model =
         case msg of
             NoOp ->
                 ( model, Cmd.none )
-
-            GetRounds ->
-                ( model, getRounds )
 
             GotRounds rounds ->
                 ( Model rounds Nothing Nothing, Cmd.none )
@@ -159,18 +155,13 @@ pegToString =
     Encode.string << toString
 
 
-
---
--- encodeRounds : List Round -> List Encode.Value
--- encodeRounds rounds =
---     List.map encodeRound rounds
-
-
-encodeRounds : List Round -> Encode.Value
+encodeRounds : List Round -> Http.Body
 encodeRounds rounds =
     Encode.object
         [ ( "rounds", Encode.list <| List.map encodeRound <| rounds )
         ]
+        |> Encode.encode 0
+        |> Http.string
 
 
 encodeRound : Round -> Encode.Value
@@ -192,20 +183,15 @@ encodeRound record =
 
 submitScore : Model -> Cmd Msg
 submitScore { rounds, blackPegs, whitePegs } =
-    Task.perform FailedRounds GotRounds (Http.post decodeRounds "http://localhost:3000/play" <| Http.string <| Encode.encode 0 <| encodeRounds rounds)
+    let
+        url =
+            "http://localhost:3000/play"
+    in
+        Task.perform FailedRounds GotRounds (Http.post decodeRounds url <| encodeRounds rounds)
 
 
 
 -- DECODING
-
-
-getRounds : Cmd Msg
-getRounds =
-    let
-        url =
-            "http://localhost:3000/rounds"
-    in
-        Task.perform FailedRounds GotRounds (Http.get decodeRounds url)
 
 
 stringToPeg : String -> Decode.Decoder Peg
