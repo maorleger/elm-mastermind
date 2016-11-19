@@ -58,12 +58,13 @@ type alias Model =
 
 init : ( Model, Cmd Msg )
 init =
-    ( Model
-        []
-        Nothing
-        Nothing
-    , submitScore <| Model [] Nothing Nothing
-    )
+    let
+        model =
+            Model [] Nothing Nothing
+    in
+        ( model
+        , submitScore <| model
+        )
 
 
 
@@ -98,23 +99,21 @@ update msg model =
         -- TODO: better error messages if model.blackPegs and model.whitePegs dont exist yet
         -- TODO: refactor all the validation to some applicative
         updateRound { guess, score } =
-            case score of
-                Nothing ->
-                    Round guess <| Just ( Maybe.withDefault 0 model.blackPegs, Maybe.withDefault 0 model.whitePegs )
+            let
+                orDefault =
+                    Maybe.withDefault 0
+            in
+                Round guess <| Just ( orDefault model.blackPegs, orDefault model.whitePegs )
 
-                Just score ->
-                    Round guess <| Just score
-
-        validateScore score =
-            case score of
-                Nothing ->
-                    Nothing
-
-                Just score ->
+        validateScore =
+            let
+                scoreInRange score =
                     if List.member score [ 0, 1, 2, 3, 4 ] then
                         Just score
                     else
                         Nothing
+            in
+                flip Maybe.andThen scoreInRange
     in
         case msg of
             NoOp ->
@@ -131,8 +130,16 @@ update msg model =
 
             SubmitScore ( blackPegs, whitePegs ) ->
                 let
+                    updatedRounds =
+                        case model.rounds of
+                            [] ->
+                                []
+
+                            current :: others ->
+                                (updateRound current) :: others
+
                     newModel =
-                        Model (List.map updateRound model.rounds) Nothing Nothing
+                        Model updatedRounds Nothing Nothing
                 in
                     ( newModel, submitScore newModel )
 
