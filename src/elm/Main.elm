@@ -306,16 +306,18 @@ scoreRenderer blackPegs whitePegs rounds =
                 div [ class "results" ] [ text "Wow I suck" ]
 
             None ->
-                div [ class "score form-inline" ]
-                    [ div [ class "form-group" ]
-                        [ label [ for "black-pegs" ] [ text "Black Pegs:" ]
+                div [ class "score" ]
+                    [ div [ class "score__input" ]
+                        [ label [ for "black-pegs" ] [ text "Black:" ]
                         , input [ class "score__input--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
                         ]
-                    , div [ class "form-group" ]
-                        [ label [ for "white-pegs" ] [ text "White Pegs:" ]
+                    , div [ class "score__input" ]
+                        [ label [ for "white-pegs" ] [ text "White:" ]
                         , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
                         ]
-                    , button [ class "score__button--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
+                    , div [ class "score__submit" ]
+                        [ button [ class "score__submit--button", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Score!" ]
+                        ]
                     ]
 
 
