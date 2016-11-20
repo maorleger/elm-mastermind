@@ -25,6 +25,12 @@ main =
         }
 
 
+type GameOver
+    = Win
+    | Lose
+    | None
+
+
 type Peg
     = Orange
     | Yellow
@@ -78,6 +84,28 @@ subscriptions model =
 
 
 -- UPDATE
+
+
+gameOver : List Round -> GameOver
+gameOver rounds =
+    let
+        winRound { guess, score } =
+            Maybe.withDefault False (Maybe.map (fst >> ((==) 4)) score)
+    in
+        case rounds of
+            [] ->
+                None
+
+            current :: others ->
+                case winRound current of
+                    False ->
+                        if List.length rounds > 7 then
+                            Lose
+                        else
+                            None
+
+                    True ->
+                        Win
 
 
 type Msg
@@ -137,7 +165,10 @@ update msg model =
                     newModel =
                         Model updatedRounds Nothing Nothing
                 in
-                    ( newModel, submitScore newModel )
+                    if gameOver newModel.rounds /= None then
+                        ( newModel, Cmd.none )
+                    else
+                        ( newModel, submitScore newModel )
 
             ChangeBlack blackPegs ->
                 ( { model | blackPegs = validateScore <| stringToScore blackPegs }, Cmd.none )
@@ -244,12 +275,12 @@ view : Model -> Html Msg
 view { rounds, blackPegs, whitePegs } =
     div [ class "board" ]
         [ (div [ class "rounds" ] <| List.map round rounds)
-        , (scoreRenderer blackPegs whitePegs)
+        , (scoreRenderer blackPegs whitePegs rounds)
         ]
 
 
-scoreRenderer : Maybe Int -> Maybe Int -> Html Msg
-scoreRenderer blackPegs whitePegs =
+scoreRenderer : Maybe Int -> Maybe Int -> List Round -> Html Msg
+scoreRenderer blackPegs whitePegs rounds =
     let
         parseScore score =
             case score of
@@ -267,18 +298,25 @@ scoreRenderer blackPegs whitePegs =
                 False ->
                     Just ( blackPegs, whitePegs )
     in
-        div [ class "score form-inline" ]
-            [ div [ class "form-group" ]
-                [ label [ for "black-pegs" ] [ text "Black Pegs:" ]
-                , input [ class "score__input--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
-                ]
-            , div [ class "form-group" ]
-                [ label [ for "white-pegs" ] [ text "White Pegs:" ]
-                , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
-                ]
-              --, button [ class "score__button--submit btn btn-primary", onClick <| GetRounds ( blackPegs, whitePegs ) ] [ text "Submit" ]
-            , button [ class "score__button--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
-            ]
+        case gameOver rounds of
+            Win ->
+                div [ class "results" ] [ text "I won!" ]
+
+            Lose ->
+                div [ class "results" ] [ text "Wow I suck" ]
+
+            None ->
+                div [ class "score form-inline" ]
+                    [ div [ class "form-group" ]
+                        [ label [ for "black-pegs" ] [ text "Black Pegs:" ]
+                        , input [ class "score__input--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
+                        ]
+                    , div [ class "form-group" ]
+                        [ label [ for "white-pegs" ] [ text "White Pegs:" ]
+                        , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
+                        ]
+                    , button [ class "score__button--submit btn btn-primary", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Submit" ]
+                    ]
 
 
 round : Round -> Html Msg
