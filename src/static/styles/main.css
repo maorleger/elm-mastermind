@@ -81,16 +81,22 @@
 .score {
   display: flex;
   justify-content: space-around;
-  flex-direction: column;
   align-items: center;
 }
 
 .score__input {
   display: flex;
   align-items: baseline;
+  width: 30%;
+}
+
+.score__submit {
+  display: flex;
+  justify-content: center;
 }
 
 .score__submit--button {
+    width: 100%;
     text-decoration: none;
     color: #fff;
     background-color: #26a69a;
