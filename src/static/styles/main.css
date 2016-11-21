@@ -1,3 +1,12 @@
+.header {
+  text-align: center;
+  font-family: "Roboto","Helvetica","Arial",sans-serif;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -.04em;
+  color: #757575;
+}
+
 .mount {
   width: 100%;
   height: 100vh;
@@ -29,6 +38,26 @@
   justify-content: space-between;
   align-items: center;
 }
+
+.black__peg {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin: 10px;
+  display: inline-block;
+  background-color: black;
+}
+
+.white__peg {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  margin: 10px;
+  display: inline-block;
+  border: 1px solid black;
+  background-color: white;
+}
+
 
 .round__peg {
   width: 30px;
