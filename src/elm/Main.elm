@@ -10,6 +10,7 @@ import Json.Decode as Decode exposing ((:=))
 import Json.Decode.Extra as Decode exposing ((|:))
 import Task
 import Json.Encode as Encode
+import Models exposing (..)
 
 
 -- APP
@@ -25,34 +26,8 @@ main =
         }
 
 
-type GameOver
-    = Win
-    | Lose
-    | None
-    | Error Http.Error
-
-
-type Peg
-    = Orange
-    | Yellow
-    | Green
-    | Red
-    | Blue
-    | Pink
-
-
-type alias Score =
-    ( Int, Int )
-
-
 
 -- MODEL
-
-
-type alias Round =
-    { guess : List Peg
-    , score : Maybe Score
-    }
 
 
 type alias Model =
@@ -92,21 +67,20 @@ gameOver rounds =
     let
         winRound { guess, score } =
             Maybe.withDefault False (Maybe.map (fst >> ((==) 4)) score)
-    in
-        case rounds of
-            [] ->
+
+        loseRound =
+            if List.length rounds > 7 then
+                Lose
+            else
                 None
 
-            current :: others ->
-                case winRound current of
-                    False ->
-                        if List.length rounds > 7 then
-                            Lose
-                        else
-                            None
-
-                    True ->
-                        Win
+        lastRound =
+            Maybe.withDefault (Round [] Nothing) (List.head rounds)
+    in
+        if winRound lastRound then
+            Win
+        else
+            loseRound
 
 
 type Msg
@@ -166,7 +140,7 @@ update msg model =
                     newModel =
                         Model updatedRounds Nothing Nothing (gameOver updatedRounds)
                 in
-                    if gameOver newModel.rounds /= None then
+                    if newModel.gameOver /= None then
                         ( newModel, Cmd.none )
                     else
                         ( newModel, submitScore newModel )
@@ -176,6 +150,117 @@ update msg model =
 
             ChangeWhite whitePegs ->
                 ( { model | whitePegs = validateScore <| stringToScore whitePegs }, Cmd.none )
+
+
+
+-- VIEW
+
+
+view : Model -> Html Msg
+view { rounds, blackPegs, whitePegs, gameOver } =
+    div [ class "board" ]
+        [ (div [ class "rounds" ] <| List.map roundView rounds)
+        , (scoreView blackPegs whitePegs gameOver)
+        ]
+
+
+scoreView : Maybe Int -> Maybe Int -> GameOver -> Html Msg
+scoreView blackPegs whitePegs gameOver =
+    case gameOver of
+        Win ->
+            div [ class "results" ] [ text "Ha! And they say computers are dumb..." ]
+
+        Lose ->
+            div [ class "results" ] [ text "Dang it! I'm just a dumb computer after all..." ]
+
+        Error error ->
+            let
+                theError error =
+                    case error of
+                        Http.Timeout ->
+                            Debug.log "A timeout occurred" "Timeout connecting to server..."
+
+                        Http.NetworkError ->
+                            Debug.log "A network error occurred" "Could not connect to server..."
+
+                        Http.UnexpectedPayload payload ->
+                            Debug.log
+                                ("A bad payload was sent: "
+                                    ++ payload
+                                )
+                                "Hmmm... Got a parse error. Weird..."
+
+                        Http.BadResponse code response ->
+                            Debug.log
+                                ("Got a bad response! code: "
+                                    ++ toString code
+                                    ++ ", response: "
+                                    ++ response
+                                )
+                                "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
+            in
+                div
+                    [ class "results" ]
+                    [ text <| theError error ]
+
+        None ->
+            scoreFormView blackPegs whitePegs
+
+
+scoreFormView : Maybe Int -> Maybe Int -> Html Msg
+scoreFormView blackPegs whitePegs =
+    let
+        parseScore score =
+            case score of
+                Nothing ->
+                    ""
+
+                Just s ->
+                    toString s
+    in
+        div [ class "form" ]
+            [ div [ class "score" ]
+                [ div [ class "score__input" ]
+                    [ label [ for "black-pegs" ] [ text "Black:" ]
+                    , input [ class "score__input--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
+                    ]
+                , div [ class "score__input" ]
+                    [ label [ for "white-pegs" ] [ text "White:" ]
+                    , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
+                    ]
+                ]
+            , div [ class "score__submit" ]
+                [ button [ class "score__submit--button", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Score!" ]
+                ]
+            ]
+
+
+roundView : Round -> Html Msg
+roundView { guess, score } =
+    let
+        show score =
+            case score of
+                Nothing ->
+                    "[ , ]"
+
+                Just ( blackPegs, whitePegs ) ->
+                    "[" ++ (toString blackPegs) ++ "," ++ (toString whitePegs) ++ "]"
+    in
+        div [ class "round" ]
+            [ div [ class "round__pegs" ] <| List.map pegView guess
+            , div
+                [ class "round__score" ]
+                [ text <| show score ]
+            ]
+
+
+pegView : Peg -> Html Msg
+pegView peg =
+    let
+        pegColor =
+            "round__peg--" ++ (toLower <| toString peg)
+    in
+        span [ class <| "round__peg " ++ pegColor ] []
 
 
 
@@ -266,118 +351,3 @@ gameRound =
 decodePeg : Decode.Decoder Peg
 decodePeg =
     Decode.andThen Decode.string stringToPeg
-
-
-
--- VIEW
-
-
-view : Model -> Html Msg
-view { rounds, blackPegs, whitePegs, gameOver } =
-    div [ class "board" ]
-        [ (div [ class "rounds" ] <| List.map round rounds)
-        , (scoreRenderer blackPegs whitePegs gameOver)
-        ]
-
-
-scoreRenderer : Maybe Int -> Maybe Int -> GameOver -> Html Msg
-scoreRenderer blackPegs whitePegs gameOver =
-    let
-        parseScore score =
-            case score of
-                Nothing ->
-                    ""
-
-                Just s ->
-                    toString s
-
-        toScore blackPegs whitePegs =
-            case String.isEmpty <| blackPegs ++ whitePegs of
-                True ->
-                    Nothing
-
-                False ->
-                    Just ( blackPegs, whitePegs )
-    in
-        case gameOver of
-            Win ->
-                div [ class "results" ] [ text "I won!" ]
-
-            Lose ->
-                div [ class "results" ] [ text "Wow I suck" ]
-
-            Error error ->
-                let
-                    theError error =
-                        case error of
-                            Http.Timeout ->
-                                "A timeout occurred"
-
-                            Http.NetworkError ->
-                                "A network error occurred"
-
-                            Http.UnexpectedPayload payload ->
-                                Debug.log
-                                    ("A bad payload was sent: "
-                                        ++ payload
-                                    )
-                                    |> toString
-
-                            Http.BadResponse code response ->
-                                Debug.log
-                                    ("Got a bad response! code: "
-                                        ++ toString code
-                                        ++ ", response: "
-                                        ++ response
-                                    )
-                                    "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
-                in
-                    Debug.log (theError error)
-                        div
-                        [ class "results" ]
-                        [ text <| theError error ]
-
-            None ->
-                div [ class "form" ]
-                    [ div [ class "score" ]
-                        [ div [ class "score__input" ]
-                            [ label [ for "black-pegs" ] [ text "Black:" ]
-                            , input [ class "score__input--black", id "black-pegs", value <| parseScore blackPegs, onInput ChangeBlack ] []
-                            ]
-                        , div [ class "score__input" ]
-                            [ label [ for "white-pegs" ] [ text "White:" ]
-                            , input [ class "score__input--white", id "white-pegs", value <| parseScore whitePegs, onInput ChangeWhite ] []
-                            ]
-                        ]
-                    , div [ class "score__submit" ]
-                        [ button [ class "score__submit--button", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Score!" ]
-                        ]
-                    ]
-
-
-round : Round -> Html Msg
-round { guess, score } =
-    let
-        show score =
-            case score of
-                Nothing ->
-                    "[ , ]"
-
-                Just ( blackPegs, whitePegs ) ->
-                    "[" ++ (toString blackPegs) ++ "," ++ (toString whitePegs) ++ "]"
-    in
-        div [ class "round" ]
-            [ div [ class "round__pegs" ] <| List.map pegRenderer guess
-            , div
-                [ class "round__score" ]
-                [ text <| show score ]
-            ]
-
-
-pegRenderer : Peg -> Html Msg
-pegRenderer peg =
-    let
-        pegColor =
-            "round__peg--" ++ (toLower <| toString peg)
-    in
-        span [ class <| "round__peg " ++ pegColor ] []
