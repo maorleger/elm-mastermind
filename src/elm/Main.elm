@@ -29,6 +29,7 @@ type GameOver
     = Win
     | Lose
     | None
+    | Error Http.Error
 
 
 type Peg
@@ -55,7 +56,7 @@ type alias Round =
 
 
 type alias Model =
-    { rounds : List Round, blackPegs : Maybe Int, whitePegs : Maybe Int }
+    { rounds : List Round, blackPegs : Maybe Int, whitePegs : Maybe Int, gameOver : GameOver }
 
 
 
@@ -66,7 +67,7 @@ init : ( Model, Cmd Msg )
 init =
     let
         model =
-            Model [] Nothing Nothing
+            Model [] Nothing Nothing None
     in
         ( model
         , submitScore <| model
@@ -147,10 +148,10 @@ update msg model =
                 ( model, Cmd.none )
 
             GotRounds rounds ->
-                ( Model rounds Nothing Nothing, Cmd.none )
+                ( Model rounds Nothing Nothing None, Cmd.none )
 
             FailedRounds error ->
-                Debug.crash <| toString error
+                ( { model | gameOver = Error error }, Cmd.none )
 
             SubmitScore ( blackPegs, whitePegs ) ->
                 let
@@ -163,7 +164,7 @@ update msg model =
                                 (updateRound current) :: others
 
                     newModel =
-                        Model updatedRounds Nothing Nothing
+                        Model updatedRounds Nothing Nothing (gameOver updatedRounds)
                 in
                     if gameOver newModel.rounds /= None then
                         ( newModel, Cmd.none )
@@ -272,15 +273,15 @@ decodePeg =
 
 
 view : Model -> Html Msg
-view { rounds, blackPegs, whitePegs } =
+view { rounds, blackPegs, whitePegs, gameOver } =
     div [ class "board" ]
         [ (div [ class "rounds" ] <| List.map round rounds)
-        , (scoreRenderer blackPegs whitePegs rounds)
+        , (scoreRenderer blackPegs whitePegs gameOver)
         ]
 
 
-scoreRenderer : Maybe Int -> Maybe Int -> List Round -> Html Msg
-scoreRenderer blackPegs whitePegs rounds =
+scoreRenderer : Maybe Int -> Maybe Int -> GameOver -> Html Msg
+scoreRenderer blackPegs whitePegs gameOver =
     let
         parseScore score =
             case score of
@@ -298,12 +299,33 @@ scoreRenderer blackPegs whitePegs rounds =
                 False ->
                     Just ( blackPegs, whitePegs )
     in
-        case gameOver rounds of
+        case gameOver of
             Win ->
                 div [ class "results" ] [ text "I won!" ]
 
             Lose ->
                 div [ class "results" ] [ text "Wow I suck" ]
+
+            Error error ->
+                let
+                    theError error =
+                        case error of
+                            Http.Timeout ->
+                                "A timeout occurred"
+
+                            Http.NetworkError ->
+                                "A network error occurred"
+
+                            Http.UnexpectedPayload payload ->
+                                "A bad payload was sent: " ++ payload
+
+                            Http.BadResponse code response ->
+                                "Got a bad response! code: " ++ toString code ++ ", response: " ++ response
+                in
+                    Debug.log (theError error)
+                        div
+                        [ class "results" ]
+                        [ text <| "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?" ]
 
             None ->
                 div [ class "form" ]
