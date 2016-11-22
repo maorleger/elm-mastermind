@@ -317,15 +317,25 @@ scoreRenderer blackPegs whitePegs gameOver =
                                 "A network error occurred"
 
                             Http.UnexpectedPayload payload ->
-                                "A bad payload was sent: " ++ payload
+                                Debug.log
+                                    ("A bad payload was sent: "
+                                        ++ payload
+                                    )
+                                    |> toString
 
                             Http.BadResponse code response ->
-                                "Got a bad response! code: " ++ toString code ++ ", response: " ++ response
+                                Debug.log
+                                    ("Got a bad response! code: "
+                                        ++ toString code
+                                        ++ ", response: "
+                                        ++ response
+                                    )
+                                    "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
                 in
                     Debug.log (theError error)
                         div
                         [ class "results" ]
-                        [ text <| "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?" ]
+                        [ text <| theError error ]
 
             None ->
                 div [ class "form" ]
