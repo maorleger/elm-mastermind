@@ -43,7 +43,7 @@ init =
             Model [] Nothing Nothing None
     in
         ( model
-        , submitScore <| model
+        , submitScore model
         )
 
 
@@ -181,13 +181,8 @@ scoreView blackPegs whitePegs gameOver =
 scoreFormView : Maybe Int -> Maybe Int -> Html Msg
 scoreFormView blackPegs whitePegs =
     let
-        parseScore score =
-            case score of
-                Nothing ->
-                    ""
-
-                Just s ->
-                    toString s
+        parseScore =
+            Maybe.map toString >> Maybe.withDefault ""
     in
         div [ class "form" ]
             [ div [ class "score" ]

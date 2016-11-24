@@ -23,10 +23,6 @@ type alias Score =
     ( Int, Int )
 
 
-
--- MODEL
-
-
 type alias Round =
     { guess : List Peg
     , score : Maybe Score
