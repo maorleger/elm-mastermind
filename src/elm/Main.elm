@@ -88,6 +88,7 @@ type Msg
     | SubmitScore ( Maybe Int, Maybe Int )
     | ChangeBlack String
     | ChangeWhite String
+    | NewGame
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -149,6 +150,9 @@ update msg model =
             ChangeWhite whitePegs ->
                 ( { model | whitePegs = validateScore <| stringToScore whitePegs }, Cmd.none )
 
+            NewGame ->
+                init
+
 
 submitScore : Model -> Cmd Msg
 submitScore { rounds, blackPegs, whitePegs } =
@@ -175,16 +179,46 @@ scoreView : Maybe Int -> Maybe Int -> GameOver -> Html Msg
 scoreView blackPegs whitePegs gameOver =
     case gameOver of
         Win ->
-            div [ class "results" ] [ text "Ha! And they say computers are dumb..." ]
+            gameOverView "Ha! And they say computers are dumb..."
 
         Lose ->
-            div [ class "results" ] [ text "Dang it! I'm just a dumb computer after all..." ]
+            gameOverView "Dang it! I'm just a dumb computer after all..."
 
         Error error ->
             errorView error
 
         None ->
             scoreFormView blackPegs whitePegs
+
+
+errorView : Http.Error -> Html Msg
+errorView error =
+    let
+        errorText =
+            case error of
+                Http.Timeout ->
+                    "Timeout connecting to server..."
+
+                Http.NetworkError ->
+                    "Network error connecting to server..."
+
+                Http.UnexpectedPayload payload ->
+                    "Hmmm... Got a parse error. Weird..."
+
+                Http.BadResponse code response ->
+                    "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
+    in
+        gameOverView errorText
+
+
+gameOverView : String -> Html Msg
+gameOverView msg =
+    div [ class "results" ]
+        [ div [ class "result__message" ] [ text msg ]
+        , div [ class "results__action" ]
+            [ button [ class "score__submit--button", onClick NewGame ] [ text "Play Again?" ]
+            ]
+        ]
 
 
 scoreFormView : Maybe Int -> Maybe Int -> Html Msg
@@ -208,28 +242,6 @@ scoreFormView blackPegs whitePegs =
                 [ button [ class "score__submit--button", onClick <| SubmitScore ( blackPegs, whitePegs ) ] [ text "Score!" ]
                 ]
             ]
-
-
-errorView : Http.Error -> Html Msg
-errorView error =
-    let
-        errorText =
-            case error of
-                Http.Timeout ->
-                    "Timeout connecting to server..."
-
-                Http.NetworkError ->
-                    "Network error connecting to server..."
-
-                Http.UnexpectedPayload payload ->
-                    "Hmmm... Got a parse error. Weird..."
-
-                Http.BadResponse code response ->
-                    "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
-    in
-        div
-            [ class "results" ]
-            [ text errorText ]
 
 
 roundView : Round -> Html Msg
