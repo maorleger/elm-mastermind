@@ -154,7 +154,7 @@ submitScore : Model -> Cmd Msg
 submitScore { rounds, blackPegs, whitePegs } =
     let
         url =
-            "http://localhost:3000/play"
+            "https://mastermind-haskell.herokuapp.com/play"
     in
         Task.perform FailedRounds GotRounds (Http.post decodeRounds url <| encodeRounds rounds)
 
