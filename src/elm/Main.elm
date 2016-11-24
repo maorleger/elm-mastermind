@@ -66,19 +66,21 @@ gameOver rounds =
         winRound { guess, score } =
             Maybe.withDefault False (Maybe.map (fst >> ((==) 4)) score)
 
-        loseRound =
-            if List.length rounds > 7 then
+        loseRound { guess, score } =
+            if List.length rounds > 7 || List.isEmpty guess then
                 Lose
             else
                 None
-
-        lastRound =
-            Maybe.withDefault (Round [] Nothing) (List.head rounds)
     in
-        if winRound lastRound then
-            Win
-        else
-            loseRound
+        case rounds of
+            [] ->
+                None
+
+            current :: others ->
+                if winRound current then
+                    Win
+                else
+                    loseRound current
 
 
 type Msg
@@ -121,7 +123,7 @@ update msg model =
                 ( model, Cmd.none )
 
             GotRounds rounds ->
-                ( Model rounds Nothing Nothing None, Cmd.none )
+                ( Model rounds Nothing Nothing (gameOver rounds), Cmd.none )
 
             FailedRounds error ->
                 ( { model | gameOver = Error error }, Cmd.none )
@@ -182,7 +184,7 @@ scoreView blackPegs whitePegs gameOver =
             gameOverView "Ha! And they say computers are dumb..."
 
         Lose ->
-            gameOverView "Dang it! I'm just a dumb computer after all..."
+            gameOverView "Hmmm... Could not come up with the next guess. Now you wouldn't cheat would you?"
 
         Error error ->
             errorView error
@@ -206,7 +208,7 @@ errorView error =
                     "Hmmm... Got a parse error. Weird..."
 
                 Http.BadResponse code response ->
-                    "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
+                    "Hmmm... Got a bad response from the server: " ++ response
     in
         gameOverView errorText
 
