@@ -150,6 +150,15 @@ update msg model =
                 ( { model | whitePegs = validateScore <| stringToScore whitePegs }, Cmd.none )
 
 
+submitScore : Model -> Cmd Msg
+submitScore { rounds, blackPegs, whitePegs } =
+    let
+        url =
+            "http://localhost:3000/play"
+    in
+        Task.perform FailedRounds GotRounds (Http.post decodeRounds url <| encodeRounds rounds)
+
+
 
 -- VIEW
 
@@ -248,12 +257,3 @@ pegView peg =
             "round__peg--" ++ (toLower <| toString peg)
     in
         span [ class <| "round__peg " ++ pegColor ] []
-
-
-submitScore : Model -> Cmd Msg
-submitScore { rounds, blackPegs, whitePegs } =
-    let
-        url =
-            "http://localhost:3000/play"
-    in
-        Task.perform FailedRounds GotRounds (Http.post decodeRounds url <| encodeRounds rounds)
