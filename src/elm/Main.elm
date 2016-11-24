@@ -174,34 +174,7 @@ scoreView blackPegs whitePegs gameOver =
             div [ class "results" ] [ text "Dang it! I'm just a dumb computer after all..." ]
 
         Error error ->
-            let
-                theError error =
-                    case error of
-                        Http.Timeout ->
-                            Debug.log "A timeout occurred" "Timeout connecting to server..."
-
-                        Http.NetworkError ->
-                            Debug.log "A network error occurred" "Could not connect to server..."
-
-                        Http.UnexpectedPayload payload ->
-                            Debug.log
-                                ("A bad payload was sent: "
-                                    ++ payload
-                                )
-                                "Hmmm... Got a parse error. Weird..."
-
-                        Http.BadResponse code response ->
-                            Debug.log
-                                ("Got a bad response! code: "
-                                    ++ toString code
-                                    ++ ", response: "
-                                    ++ response
-                                )
-                                "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
-            in
-                div
-                    [ class "results" ]
-                    [ text <| theError error ]
+            errorView error
 
         None ->
             scoreFormView blackPegs whitePegs
@@ -235,16 +208,37 @@ scoreFormView blackPegs whitePegs =
             ]
 
 
+errorView : Http.Error -> Html Msg
+errorView error =
+    let
+        errorText =
+            case error of
+                Http.Timeout ->
+                    "Timeout connecting to server..."
+
+                Http.NetworkError ->
+                    "Network error connecting to server..."
+
+                Http.UnexpectedPayload payload ->
+                    "Hmmm... Got a parse error. Weird..."
+
+                Http.BadResponse code response ->
+                    "Hmmm... Could not deduce the next guess. Are you sure you scored my guesses correctly?"
+    in
+        div
+            [ class "results" ]
+            [ text errorText ]
+
+
 roundView : Round -> Html Msg
 roundView { guess, score } =
     let
-        show score =
-            case score of
-                Nothing ->
-                    "[ , ]"
-
-                Just ( blackPegs, whitePegs ) ->
+        show =
+            Maybe.map
+                (\( blackPegs, whitePegs ) ->
                     "[" ++ (toString blackPegs) ++ "," ++ (toString whitePegs) ++ "]"
+                )
+                >> Maybe.withDefault "[ , ]"
     in
         div [ class "round" ]
             [ div [ class "round__pegs" ] <| List.map pegView guess
