@@ -184,7 +184,7 @@ scoreView blackPegs whitePegs gameOver =
             gameOverView "Ha! And they say computers are dumb..."
 
         Lose ->
-            gameOverView "Hmmm... Could not come up with the next guess. Now you wouldn't cheat would you?"
+            gameOverView "Hmmm... I'm stumped. Are you sure you're scoring my guesses accurately?"
 
         Error error ->
             errorView error
